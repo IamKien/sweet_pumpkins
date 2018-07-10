@@ -36,15 +36,22 @@ class Main extends React.Component {
   }
 
   componentDidMount(){
-    this.fetchMovies(this.state.moviesUrl);
+    const savedState = this.getStateFromLocalStorage();
+    if ( !savedState || (savedState && !savedState.movies.length)) {
+      this.fetchMovies(this.state.moviesUrl);
+    } else {
+      this.setState({ ...savedState });
+      this.generateUrl(savedState);
+    }
   }
 
   componentWillUpdate(nextProps, nextState) {
+    this.saveStateToLocalStorage();
     if (this.state.moviesUrl !== nextState.moviesUrl) {
       this.fetchMovies(nextState.moviesUrl);
     }
     if (this.state.page !== nextState.page) {
-      this.generateUrl();
+      this.generateUrl(nextState);
     }
   }
 
@@ -65,9 +72,9 @@ class Main extends React.Component {
     });
   };
 
-  generateUrl = () => {
-    const {genres, year, rating, runtime, page } = this.state;
-    const selectedGenre = genres.find( genre => genre.name === this.state.genre);
+  generateUrl = params => {
+    const {genres, year, rating, runtime, page } = params;
+    const selectedGenre = genres.find( genre => genre.name === params.genre);
     const genreId = selectedGenre.id;
 
     const moviesUrl = `https://api.themoviedb.org/3/discover/movie?` +
@@ -86,7 +93,16 @@ class Main extends React.Component {
   }
 
   onSearchButtonClick = () => {
-    this.generateUrl();
+    this.setState({page: 1});
+    this.generateUrl(this.state);
+  }
+
+  saveStateToLocalStorage = params => {
+    localStorage.setItem("sweetpumpkins.params", JSON.stringify(this.state));
+  }
+
+  getStateFromLocalStorage = () => {
+    return JSON.parse(localStorage.getItem("sweetpumpkins.params"));
   }
 
   fetchMovies = (url) => {
@@ -130,13 +146,13 @@ class Main extends React.Component {
   render() {
     return (
       <section className="main">
-        <Navigation
-          onChange={this.onChange}
+        <Navigation 
+          onChange={this.onChange} 
           onGenreChange={this.onGenreChange}
-          setGenres={this.setGenres}
+          setGenres={this.setGenres} 
           onSearchButtonClick={this.onSearchButtonClick}
           {...this.state} />
-        <Movies
+        <Movies 
           movies={this.state.movies}
           page={this.state.page}
           onPageIncrease={this.onPageIncrease}
